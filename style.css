@@ -1,0 +1,61 @@
+body {
+    text-align: center;
+    font-size: 1.6rem;
+    margin: 0;
+  }
+  
+#main {
+    margin: 30px 8x;
+    padding: 15px;
+    border-radius: 5px;
+    background: rgb(245, 229, 143);
+}
+
+#img-div {
+    display: block;
+    background: rgba(255, 238, 0, 0.404);
+    padding: 10px;
+    margin: 0;
+    max-width: 100%;
+}
+
+#image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    justify-content: center;
+}
+
+#image-caption {
+    font-size: 1.5rem;
+}
+
+p {
+    font-size: 1.6rem;
+}
+
+ul {
+    display: block;
+    max-width: 550px;
+    text-align: left;
+    margin: 0 auto 50px auto;
+    list-style-type: disc;
+    line-height: 1.6em;
+    font-size: 1.1rem;
+}
+
+li {
+    margin: 16px 0;
+}
+
+strong {
+    font-size: 1.3rem;
+}
+
+blockquote {
+    font-style: italic;
+    max-width: 545px;
+    margin: 0 auto 50px auto;
+    text-align: left;
+    font-size: 1.1rem;
+}
