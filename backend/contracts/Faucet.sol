@@ -1,35 +1,44 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.0;
 
-contract Faucet {
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+
+contract Faucet is ERC2771Context, Ownable {
+
     mapping (address => uint) timeCheck;
 
     event Withdraw(address indexed to, uint amount);
     event Deposit(address indexed from, uint amount);
 
-    receive() external payable {
-        emit Deposit(msg.sender, msg.value);
+    constructor(address _trustedForwarder) ERC2771Context(_trustedForwarder) {
+
     }
 
     function withdraw() external payable {
         uint withdraw_amount = .05 ether;
         require(withdraw_amount <= address(this).balance, "Sorry, not enough to withdraw");
 
-        uint lastTime = timeCheck[msg.sender];
+        uint lastTime = timeCheck[_msgSender()];
         require(block.timestamp >= lastTime + 1 days, "Sorry, you have to wait 24 hours");
 
-        payable(msg.sender).transfer(withdraw_amount);
+        timeCheck[_msgSender()] = block.timestamp;
+        (bool success, ) = _msgSender().call{value: withdraw_amount}("");
+        require(success);
+        // payable(msg.sender).transfer(withdraw_amount);
+        emit Withdraw(_msgSender(), withdraw_amount);
     }
 
-    // function degen(uint bet, uint guess) external payable {
-    //     uint random;
-    //     require(guess>=1 && guess<=100, "Sorry, pick a number between 1 and 100");
-    //     require(bet <= address(this).balance, "Sorry, not enough to payout");
+    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+        return super._msgData();
+    }
 
-    //     if (guess == random) {
-    //         payable(msg.sender).transfer(bet);
-    //     } else {
-    //         payable(address(this)).transfer(bet);
-    //     }
-    // }
+    function _msgSender() internal view override(ERC2771Context, Context) returns (address) {
+        return super._msgSender();
+    }
+
+    receive() external payable {
+        emit Deposit(_msgSender(), msg.value);
+    }
 }
