@@ -1,20 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
-
-contract Faucet is ERC2771Context, Ownable {
+contract Faucet is Context {
 
     mapping (address => uint) timeCheck;
 
     event Withdraw(address indexed to, uint amount);
     event Deposit(address indexed from, uint amount);
-
-    constructor(address _trustedForwarder) ERC2771Context(_trustedForwarder) {
-
-    }
 
     function withdraw() external payable {
         uint withdraw_amount = .05 ether;
@@ -26,16 +20,12 @@ contract Faucet is ERC2771Context, Ownable {
         timeCheck[_msgSender()] = block.timestamp;
         (bool success, ) = _msgSender().call{value: withdraw_amount}("");
         require(success);
-        // payable(msg.sender).transfer(withdraw_amount);
+
         emit Withdraw(_msgSender(), withdraw_amount);
     }
 
-    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
-        return super._msgData();
-    }
-
-    function _msgSender() internal view override(ERC2771Context, Context) returns (address) {
-        return super._msgSender();
+    function checkBalance() external view returns(uint) {
+        return address(this).balance;
     }
 
     receive() external payable {
