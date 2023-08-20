@@ -21,6 +21,11 @@
   -webkit-text-size-adjust: 100%;
 }
 
+.nav {
+  display: flex;
+  justify-content: space-between;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
