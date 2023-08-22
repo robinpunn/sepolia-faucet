@@ -1,32 +1,69 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import getContract from "./util/contract";
 import styles from "./styles/App.module.css";
 import logo from "./assets/faucet.png";
 
 function App() {
-  const [provider, setProvider] = useState(null);
-  const [singer, setSigner] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [donationAmount, setDonationAmount] = useState("");
+  const [signer, setSigner] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [reciept, setReciept] = useState<any>(null);
+
+  useEffect(() => {
+    if (signer) {
+      const contract = getContract(signer);
+      console.log("signer effect:", signer, "contract:", contract);
+      setSigner(signer);
+      // @ts-ignore
+      setContract(contract);
+    }
+  }, [signer]);
 
   const connectWallet = async () => {
-    let signerSet = null;
-    let providerSet;
+    let signer = null;
+    let provider;
     if (window.ethereum === null) {
-      providerSet = new ethers.JsonRpcProvider(
-        import.meta.env.VITE_SEPOLIA_URL
-      );
-      // @ts-ignore
-      setProvider(providerSet);
+      provider = new ethers.JsonRpcProvider(import.meta.env.VITE_SEPOLIA_URL);
       setConnected(true);
     } else {
       // @ts-ignore
-      providerSet = new ethers.BrowserProvider(window.ethereum);
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      console.log("provider:", provider, "walletSinger:", signer);
       // @ts-ignore
-      signerSet = await providerSet.getSigner();
-      // @ts-ignore
-      setSigner(signerSet);
+      setSigner(signer);
       setConnected(true);
+    }
+  };
+
+  const donate = async (amount: string) => {
+    console.log("clicked");
+    try {
+      if (!connected) {
+        alert("please connect wallet first");
+      }
+      if (!signer || !contract) {
+        throw new Error("Signer or contract not available");
+      }
+      if (donationAmount === "") {
+        alert("please enter a valid amount");
+      }
+      const donationInEther = ethers.parseEther(amount);
+      // @ts-ignore
+      const transaction = await signer.sendTransaction({
+        to: "0x4eF2d17D95171331EB6c67c5b154d0dae4147C6E",
+        value: donationInEther,
+      });
+      // Wait for the transaction to be mined
+      const txReceipt = await transaction.wait();
+      console.log(txReceipt);
+      setReciept(txReceipt);
+      alert("Donation successful");
+    } catch (error) {
+      console.log(error);
+      alert("Error occurred during donation");
     }
   };
 
@@ -34,7 +71,9 @@ function App() {
     <main id={styles.root}>
       <nav className={styles.nav}>
         <img src={logo} alt="logo" />
-        <button onClick={connectWallet}>Connect</button>
+        <button onClick={connectWallet}>
+          {connected ? "Connected" : "Connect"}
+        </button>
       </nav>
       <section className={styles.text}>
         <h1>Sepolia Faucet</h1>
@@ -43,9 +82,19 @@ function App() {
         <p>Claim 0.05 Sepolia Eth every 24 hours</p>
         <button>Claim</button>
         <p>Or Donate to the faucet as often as you like</p>
-        <input type="text" placeholder="Enter amount" />
-        <button>Donate</button>
+        <input
+          type="text"
+          placeholder="Enter amount"
+          value={donationAmount}
+          onChange={(e) => setDonationAmount(e.target.value)}
+        />
+        <button onClick={() => donate(donationAmount)}>Donate</button>
       </section>
+      {reciept && (
+        <section>
+          <p>Follow Transaction: {reciept.hash}</p>
+        </section>
+      )}
     </main>
   );
 }
