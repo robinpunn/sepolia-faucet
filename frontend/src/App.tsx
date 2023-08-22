@@ -7,17 +7,17 @@ import logo from "./assets/faucet.png";
 function App() {
   const [connected, setConnected] = useState(false);
   const [donationAmount, setDonationAmount] = useState("");
-  const [signer, setSigner] = useState(null);
-  const [contract, setContract] = useState(null);
+  const [signer, setSigner] = useState<any>(null);
+  const [contract, setContract] = useState<any>(null);
   const [reciept, setReciept] = useState<any>(null);
 
   useEffect(() => {
     if (signer) {
-      const contract = getContract(signer);
-      console.log("signer effect:", signer, "contract:", contract);
+      getContract(signer).then((contract) => {
+        console.log("contract:", contract);
+        setContract(contract);
+      });
       setSigner(signer);
-      // @ts-ignore
-      setContract(contract);
     }
   }, [signer]);
 
@@ -31,8 +31,7 @@ function App() {
       // @ts-ignore
       provider = new ethers.BrowserProvider(window.ethereum);
       signer = await provider.getSigner();
-      console.log("provider:", provider, "walletSinger:", signer);
-      // @ts-ignore
+      console.log("provider:", provider, "walletSigner:", signer);
       setSigner(signer);
       setConnected(true);
     }
@@ -67,6 +66,12 @@ function App() {
     }
   };
 
+  const claim = async () => {
+    const transaction = await contract.withdraw();
+    const txReceipt = await transaction.wait();
+    console.log(txReceipt);
+  };
+
   return (
     <main id={styles.root}>
       <nav className={styles.nav}>
@@ -80,7 +85,7 @@ function App() {
       </section>
       <section className={styles.buttons}>
         <p>Claim 0.05 Sepolia Eth every 24 hours</p>
-        <button>Claim</button>
+        <button onClick={() => claim()}>Claim</button>
         <p>Or Donate to the faucet as often as you like</p>
         <input
           type="text"
@@ -92,7 +97,7 @@ function App() {
       </section>
       {reciept && (
         <section>
-          <p>Follow Transaction: {reciept.hash}</p>
+          <p>Follow Your Transaction: {reciept.hash}</p>
         </section>
       )}
     </main>
