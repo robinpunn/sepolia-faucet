@@ -7,14 +7,15 @@ import logo from "./assets/faucet.png";
 function App() {
   const [connected, setConnected] = useState(false);
   const [donationAmount, setDonationAmount] = useState("");
+  const [provider, setProvider] = useState<any>(null);
   const [signer, setSigner] = useState<any>(null);
   const [contract, setContract] = useState<any>(null);
-  const [reciept, setReciept] = useState<any>(null);
+  const [receipt, setReceipt] = useState<any>(null);
 
   useEffect(() => {
     if (signer) {
       getContract(signer).then((contract) => {
-        console.log("contract:", contract);
+        console.log("contract:", contract.interface.fragments);
         setContract(contract);
       });
       setSigner(signer);
@@ -27,13 +28,15 @@ function App() {
     if (window.ethereum === null) {
       provider = new ethers.JsonRpcProvider(import.meta.env.VITE_SEPOLIA_URL);
       setConnected(true);
+      setProvider(provider);
     } else {
       // @ts-ignore
       provider = new ethers.BrowserProvider(window.ethereum);
       signer = await provider.getSigner();
-      console.log("provider:", provider, "walletSigner:", signer);
-      setSigner(signer);
+      console.log("provider:", provider, "walletSigner:", signer.address);
       setConnected(true);
+      setProvider(provider);
+      setSigner(signer);
     }
   };
 
@@ -52,13 +55,12 @@ function App() {
       const donationInEther = ethers.parseEther(amount);
       // @ts-ignore
       const transaction = await signer.sendTransaction({
-        to: "0x4eF2d17D95171331EB6c67c5b154d0dae4147C6E",
+        to: contract.target,
         value: donationInEther,
       });
-      // Wait for the transaction to be mined
+
       const txReceipt = await transaction.wait();
       console.log(txReceipt);
-      setReciept(txReceipt);
       alert("Donation successful");
     } catch (error) {
       console.log(error);
@@ -67,40 +69,90 @@ function App() {
   };
 
   const claim = async () => {
-    const transaction = await contract.withdraw();
-    const txReceipt = await transaction.wait();
-    console.log(txReceipt);
+    console.log("claim clicked");
+    // const callData = contract.interface.encodeFunctionData("withdraw");
+    // const nonce = await signer.getNonce();
+    // const nonceHex = ethers.toBeHex(nonce);
+
+    // const options = {
+    //   method: "POST",
+    //   headers: {
+    //     accept: "application/json",
+    //     "content-type": "application/json",
+    //   },
+    //   body: JSON.stringify({
+    //     id: 1,
+    //     jsonrpc: "2.0",
+    //     method: "alchemy_requestGasAndPaymasterAndData",
+    //     params: [
+    //       {
+    //         policyId: import.meta.env.VITE_POLICY_ID,
+    //         entryPoint: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+    //         dummySignature:
+    //           "0xe8fe34b166b64d118dccf44c7198648127bf8a76a48a042862321af6058026d276ca6abb4ed4b60ea265d1e57e33840d7466de75e13f072bbd3b7e64387eebfe1b",
+    //         userOperation: {
+    //           sender: signer.address,
+    //           nonce: nonceHex,
+    //           initCode: "0x",
+    //           callData: callData,
+    //         },
+    //       },
+    //     ],
+    //   }),
+    // };
+    // const response = await fetch(import.meta.env.VITE_SEPOLIA_URL, options)
+    //   .then((response) => response.json())
+    //   .then((response) => console.log(response))
+    //   .catch((err) => console.error(err));
+    console.log("claim clicked");
+    try {
+      const transaction = await contract.withdraw();
+      const txReceipt = await transaction.wait();
+      setReceipt(txReceipt);
+      console.log(txReceipt);
+    } catch (error: any) {
+      const errorMessageMatch = error
+        .toString()
+        .match(/execution reverted: "(.*?)"/);
+      const errorMessage = errorMessageMatch
+        ? errorMessageMatch[1]
+        : "An error occurred";
+
+      alert("Error occurred during claim: " + errorMessage);
+    }
   };
 
   return (
-    <main id={styles.root}>
+    <>
       <nav className={styles.nav}>
         <img src={logo} alt="logo" />
         <button onClick={connectWallet}>
           {connected ? "Connected" : "Connect"}
         </button>
       </nav>
-      <section className={styles.text}>
-        <h1>Sepolia Faucet</h1>
-      </section>
-      <section className={styles.buttons}>
-        <p>Claim 0.05 Sepolia Eth every 24 hours</p>
-        <button onClick={() => claim()}>Claim</button>
-        <p>Or Donate to the faucet as often as you like</p>
-        <input
-          type="text"
-          placeholder="Enter amount"
-          value={donationAmount}
-          onChange={(e) => setDonationAmount(e.target.value)}
-        />
-        <button onClick={() => donate(donationAmount)}>Donate</button>
-      </section>
-      {reciept && (
-        <section>
-          <p>Follow Your Transaction: {reciept.hash}</p>
+      <main id={styles.root}>
+        <section className={styles.text}>
+          <h1>Sepolia Faucet</h1>
         </section>
-      )}
-    </main>
+        <section className={styles.buttons}>
+          <p>Claim 0.05 Sepolia Eth every 24 hours</p>
+          <button onClick={() => claim()}>Claim</button>
+          <p>Or Donate to the faucet as often as you like</p>
+          <input
+            type="text"
+            placeholder="Enter amount"
+            value={donationAmount}
+            onChange={(e) => setDonationAmount(e.target.value)}
+          />
+          <button onClick={() => donate(donationAmount)}>Donate</button>
+        </section>
+        {receipt && (
+          <section>
+            <p>Follow Your Transaction: {receipt.hash}</p>
+          </section>
+        )}
+      </main>
+    </>
   );
 }
 
